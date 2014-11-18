@@ -22,18 +22,14 @@ plot.best.response <- function(p, gamma, nu, ro)
   id <- function(x){return(x)}
   plot.function(id, from = 0, to = 1, lty = "dashed", ylab = "Best Response", xlab = "p_eq")
   
-  ro_ratio <- (ro - 1) / ro
-  
-  tmp <- sapply(c(0, p, 1, ro_ratio), bound.val.prob)
+  tmp <- sapply(c(0, p, 1), bound.val.prob)
   tmp <- sort(unique(tmp))
   segs <- seg.bounds(tmp)
   
-  cat("(ro - 1) / ro =", ro_ratio, "\n")
-
   draw.seg <- function(seg)
   {
     mid <- mean(seg)
-    flip <- xor(mid > ro_ratio, (nu + gamma) > 0) # True IFF exactly one of the conditions hold.
+    flip <- ((nu + gamma) > 0)
     br_noflip <- (p[1] < mid) && (mid < p[2])
     br <- as.integer(xor(flip, br_noflip))
     segments(x0 = seg[1], y0 = br, x1 = seg[2], y1 = br)
@@ -42,17 +38,16 @@ plot.best.response <- function(p, gamma, nu, ro)
   apply(X = segs, MARGIN = 1, FUN = draw.seg)
   
   for(p0 in p[is.prob(p)])
-      segments(x0 = p0, y0 = 0, x1 = p0, y1 = 1)
-  
-  if (is.prob(ro_ratio))
-    segments(x0 = ro_ratio, y0 = 0, x1 = ro_ratio, y1 = 1, lty="dotted", col = "green")
+      segments(x0 = p0, y0 = 0, x1 = p0, y1 = 1, lty = "dotted")
 }
 
 calc.and.plot <- function(gamma, nu, ro)
 {
   cat("Calculating with parameters: gamma =", gamma,"; nu =", nu, "; ro =", ro, "\n")
   p <- calculate.pe(gamma, nu, ro)
-  plot.best.response(p, gamma, nu, ro)
+  
+	cat("Roots are:", p, "\n")
+	plot.best.response(p, gamma, nu, ro)
   
   cat("Result: p_eq =", p[is.prob(p)], "\n")
 }

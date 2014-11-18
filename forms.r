@@ -24,6 +24,5 @@ calculate.pe <- function(gamma, nu, ro)
   
   p <- (find.roots(a, b, c) - 1) / ro
   
-#  return (p[is.prob(p)])
   return (p)
 }
