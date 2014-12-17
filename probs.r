@@ -41,3 +41,17 @@ calc.prob.table <- function(d)
   
   return (t)
 }
+
+calc.expected.value <- function(d)
+{
+  n <- nrow(d)
+  t <- d$P_n0+d$P_n1 * seq(0,n-1)
+  return (sum(t))
+}
+
+find.proper.range <- function(d)
+{
+  f <- function(n) { return (sum(head(d,n))) }
+  s <- sapply(1:nrow(d), f)
+  return (d[which(s <= 1),])
+}
