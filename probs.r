@@ -125,40 +125,76 @@ p51.and.p50 <- function(p, ro)
 }
 
 MAX_RO <- 0.5*(1 + sqrt(5))
+RO_RESO <- 0.05
+RO_SEQ <- seq(RO_RESO, MAX_RO, RO_RESO)
 
 calc.p.eq <- function(ro, gamma, n = 30, reso = 0.005, pl = TRUE)
 {
   if (ro >= MAX_RO)
     return (NA)
   
-  if (gamma <= 1 - ro)
+  if (ro < 1 & gamma <= 1 - ro)
     return (0)
   
   f <- function(p)
   {
-    ro_mm1 <- (1-p)*ro
-    #n <- max(10, ceiling(log(0.005, base = ro_mm1)))
+    if ((1-p)*ro + (p*ro)^2/(1+p*ro) >= 1)
+      return (Inf)
     Lp <- expected.queue.length(ro, p, n)
     return (gamma*(Lp - 1) - p*ro - 1)
   }
   
   p <- seq(reso, 1, reso)
   V_p <- sapply(p, f)
+  min_elem <- which.min(abs(V_p))
   
   if(pl)
   {
-    plot(p, V_p)
+    plot(p, V_p, col = ifelse( V_p == V_p[min_elem],'red','black'), lwd = 2)
     abline(0, 0, lty=2)
+    title(paste("Value vs. p; gamma = ", gamma, "; ro = ", ro, sep = ""))
   }
   
-  return (p[which.min(abs(V_p))])
+  return (p[min_elem])
 }
 
-p.ro.chart.for.given.gamma <- function(gamma, reso = 0.05)
+p.ro.chart.for.given.gamma <- function(gamma, ro_seq = RO_SEQ)
 {
-  ro_seq <- seq(reso, MAX_RO, reso)
   calc.p.eq.wrapper <- function(ro) { return (calc.p.eq(ro, gamma, reso = 0.01, pl = FALSE)) }
   p_vals <- sapply(ro_seq, calc.p.eq.wrapper)
-  plot(ro_seq, p, type='b')
+  plot(ro_seq, p_vals, type='b')
   return (p_vals)
 }
+
+require('plotrix')
+
+accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ)
+{
+  ngraphs <- length(gamma_vals)
+  colors <- c("blue", "red", "green")
+  for (i in 1:ngraphs)
+  {
+    p_vals <- p_vec_list[[i]]
+    gamma <- gamma_vals[i]
+    color <- colors[(i%%length(colors))+1]
+    plot(ro_seq, p_vals, xlab = "", ylab = "", xlim = c(0, MAX_RO), ylim = c(0,1), type = 'b', lwd = 1, pch = 20, col = color)
+    txtanchor <- which(p_vals >= 0.1*ngraphs-0.075*(ngraphs-i))[1]
+    tx <- ro_seq[txtanchor]
+    ty <- p_vals[txtanchor]
+    textbox(x = c(tx-.5, tx+.5), y = ty+0.025, textlist = c("1/gamma =",1/gamma), box = F, justify = 'c' , cex = 0.7, col = color)
+    par(new = T)
+  }
+  title(main = "P(eq) vs. ro", xlab = "ro", ylab = "P(eq)")
+  par(new = F)
+}
+
+p.ro.chart <- function(vals)
+{
+  p_vals_list <- readRDS("p_vals.rds")
+  gamma_vals <- readRDS("gamma_vals.rds")
+  indices <- match(vals, gamma_vals)
+  
+  stopifnot(all(!is.na(indices)))
+  
+  accumulated.p.ro.chart(p_vals_list[indices], gamma_vals[indices], RO_SEQ)
+}  
