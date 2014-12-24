@@ -181,7 +181,7 @@ accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ)
     txtanchor <- which(p_vals >= 0.1*ngraphs-0.075*(ngraphs-i))[1]
     tx <- ro_seq[txtanchor]
     ty <- p_vals[txtanchor]
-    textbox(x = c(tx-.5, tx+.5), y = ty+0.025, textlist = c("1/gamma =",1/gamma), box = F, justify = 'c' , cex = 0.7, col = color)
+    textbox(x = c(tx-1, tx+1), y = ty+0.025, textlist = c("1/gamma =",1/gamma), box = F, justify = 'c' , cex = 0.7, col = color)
     par(new = T)
   }
   title(main = "P(eq) vs. ro", xlab = "ro", ylab = "P(eq)")
