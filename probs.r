@@ -140,17 +140,30 @@ calc.p.eq <- function(ro, gamma, n = 30, reso = 0.005, pl = TRUE)
   {
     if ((1-p)*ro + (p*ro)^2/(1+p*ro) >= 1)
       return (Inf)
-    Lp <- expected.queue.length(ro, p, n)
-    return (gamma*(Lp - 1) - p*ro - 1)
+    return (expected.queue.length(ro, p, n))
+    
   }
   
   p <- seq(reso, 1, reso)
-  V_p <- sapply(p, f)
-  min_elem <- which.min(abs(V_p))
+  Lp <- sapply(p, f)
+  Vp <- gamma*(Lp - 1)/(1+p*ro) - 1
+  min_elem <- which.min(abs(Vp))
+  
+  fixedvals <- function(x) { return (x[!is.infinite(x) & !is.na(x)]) }
   
   if(pl)
   {
-    plot(p, V_p, col = ifelse( V_p == V_p[min_elem],'red','black'), lwd = 2)
+    Vs_p <- -(1 + gamma/(1+p*ro) + gamma*Lp*p*ro/(1+p*ro))
+    Vn_p <- -gamma*Lp
+    ylimUp <- max(fixedvals(c(Vs_p, Vn_p, Vp)))
+    ylimLo <- min(fixedvals(c(Vs_p, Vn_p, Vp)))
+    plot(p, Vs_p, col="blue", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
+    textbox(x = c(0, 1), y = tail(Vs_p, 1), textlist = c("Value of Sensing"), box = F, justify = 'r' , cex = 0.7, col = "blue")
+    par(new=T)
+    plot(p, Vn_p, col="green", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
+    textbox(x = c(0, 1), y = tail(Vn_p, 1), textlist = c("Value of Not-Sensing"), box = F, justify = 'r' , cex = 0.7, col = "green")
+    par(new=T)
+    plot(p, Vp, col = ifelse( Vp == Vp[min_elem],'red','black'), type='b', lwd = 2, xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
     abline(0, 0, lty=2)
     title(paste("Value vs. p; gamma = ", gamma, "; ro = ", ro, sep = ""))
   }
