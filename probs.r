@@ -3,9 +3,18 @@ RO_RESO <- 0.05
 RO_SEQ <- seq(RO_RESO, MAX_RO, RO_RESO)
 ACC <- 1e-6
 MIN_N <- 20
+LP_VALS <- readRDS("LPVals.rds")
 
 effective_ro <- function(ro, p) { return (ro*(1 - p/(1+p*ro)))}
 fixedvals <- function(x) { return (x[!is.infinite(x) & !is.na(x)]) }
+
+get.p.Lp <- function(ro)
+{
+  p <- LP_VALS[[paste(ro, "p")]]
+  Lp <- LP_VALS[[paste(ro, "Lp")]]
+  
+  return (data.frame(p, Lp))
+}
 
 calc.prob.table.by.p00 <- function(ro, p, accuracy = ACC)
 {
@@ -63,14 +72,11 @@ calc.expected.value <- function(d)
 find.proper.range <- function(d)
 {
   f <- function(n) { return (sum(head(d,n))) }
-#   is.prob <- function(v) { return (all(v >= 0 & v <= 1)) }
   d[d<0] <- 0
   d[d>1] <- 1
   s1 <- sapply(1:nrow(d), f)
   d <- d[which(s1 <= 1 & s1 >= 0), ]
   return(d)
-#   s2 <- apply(X=d, MARGIN = 1, FUN = is.prob)
-#   return (d[s2,])
 }
 
 expected.queue.length <- function(ro, p, accuracy = ACC)
@@ -114,19 +120,26 @@ plot.queue.length <- function(ro, accuracy = ACC, reso = 0.02)
   return (cbind(p, Lp))
 }
 
-calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, pl = TRUE)
+calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, pl = TRUE, readlp = TRUE)
 {
   if (ro < 1 & gamma <= 1 - ro)
     return (0)
   
   f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
   
-  p <- seq(0, 1, reso)
-  Lp <- sapply(p, f)
+  if (readlp){
+    d <- get.p.Lp(ro)
+    p <- d$p
+    Lp <- d$Lp
+  }
+  
+  else{
+    p <- seq(0, 1, reso)
+    Lp <- sapply(p, f)
+  }
+  
   Vp <- gamma*Lp/(1+p*ro) - 1
   min_elem <- which.min(abs(Vp))
-  
-  plot(p, Lp, type='l')
   
   if(pl)
   {
@@ -145,7 +158,17 @@ calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, pl = TRUE)
     title(paste("Value vs. p; gamma = ", gamma, "; ro = ", ro, sep = ""))
   }
   
-  return (p[min_elem])
+  if (all(Vp[!is.na(Vp)] > 0))
+    return (1)
+  
+  if (all(Vp[!is.na(Vp)] < 0))
+    return (0)
+  
+  if (!is.na(p[min_elem]) & !is.infinite(p[min_elem]))
+    return (p[min_elem])
+  
+  else
+    return (NA)
 }
 
 p.ro.chart.for.given.gamma <- function(gamma, ro_seq = RO_SEQ)
