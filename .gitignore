@@ -41,3 +41,9 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+#Temp files
+.~*
+
+#History
+.RHistory
