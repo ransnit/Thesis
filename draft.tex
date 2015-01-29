@@ -160,7 +160,7 @@ where $\varphi$ is the well-studied golden ratio, concluding that for every $\rh
 \section{Equilibrium Strategy}
 In this section we discuss the states and strategies of (Nash) equilibrium in the system. Let $c_{w}>0$ be the time-expense for a single time unit of an individual costumer waiting in line, and $c_{s}>0$ be the price of sensing (paid by each costumer who chooses to sense, regardless of the consequences of his action). Since all costumers are identical, so are their equilibrium strategies. In addition, each one arriving at the system is eventually attained to service, and therefore, neither the reward from service nor the time spent in service is relevant. Of course, the state of the system, including the length of the queue and the status of the servers, is unobservable as mentioned, and unknown to the costumer at the time he makes his decision. We assume the system is not over-loaded (i.e: $\rho<\varphi$) and that all costumers act to reduce their expected cost to minimum. Denote $C_{S}(p)$ and $C_{N}(p)$ the expected cost of an individual who chooses to sense and an individual who chooses not to sense, respectively, as the others' probability of sensing is $p$.
 \begin{equation}\begin{cases}
- 	C_{N}(p) = \frac{c_{w}}{\mu}L(p) \\
+ 	C_{N}(p) = \frac{c_{w}}{\mu}E(L(p)) \\
 	C_{S}(p) = c_{s} + Pr(X_2=1) \cdot C_{N}(p) = c_{s} + \frac{p\Lambda}{\mu+p\Lambda}\frac{c_{w}}{\mu}L(p) 
 \end{cases}
 \label{LossFunc}
