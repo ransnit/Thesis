@@ -12,8 +12,9 @@ get.p.Lp <- function(ro)
 {
   p <- LP_VALS[[paste(ro, "p")]]
   Lp <- LP_VALS[[paste(ro, "Lp")]]
+  Lp0 <- LP_VALS[[paste(ro, "Lp0")]]
   
-  return (data.frame(p, Lp))
+  return (data.frame(p, Lp, Lp0))
 }
 
 calc.prob.table.by.p00 <- function(ro, p, accuracy = ACC)
@@ -69,6 +70,15 @@ calc.expected.value <- function(d)
   return (sum(t))
 }
 
+calc.conditional.expected.value <- function(d, k)
+{
+  n <- nrow(d)
+  p <- d[, paste("P_n", k, sep = "")]
+  pn <- p / sum(p)
+  t <- (pn * seq(0,n-1))
+  return (sum(t))
+}
+
 find.proper.range <- function(d)
 {
   f <- function(n) { return (sum(head(d,n))) }
@@ -77,6 +87,66 @@ find.proper.range <- function(d)
   s1 <- sapply(1:nrow(d), f)
   d <- d[which(s1 <= 1 & s1 >= 0), ]
   return(d)
+}
+
+prob.n <- function(n, ro, p, accuracy = ACC)
+{
+  if (ro >= MAX_RO)
+    return (0)
+  
+  if (p <=  ((ro - 1) / (ro * (2-ro))))
+    return (0)
+  
+  if (p == 0)
+    return ((1-ro)*ro^n)
+  
+  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
+  d <- find.proper.range(d)
+  
+  if(nrow(d) < 1)
+    return (NA)
+  
+  return (d$P_n0[n+1]+d$P_n1[n+1])
+}
+
+prob.n0 <- function(n, ro, p, accuracy = ACC)
+{
+  if (ro >= MAX_RO)
+    return (0)
+  
+  if (p <=  ((ro - 1) / (ro * (2-ro))))
+    return (0)
+  
+  if (p == 0)
+    return ((1-ro)*ro^n)
+  
+  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
+  d <- find.proper.range(d)
+  
+  if(nrow(d) < 1)
+    return (NA)
+  
+  return (d$P_n0[n+1])
+}
+
+probs.to.n <- function(n, ro, p, accuracy = ACC)
+{
+  if (ro >= MAX_RO)
+    return (NA)
+  
+  if (p <=  ((ro - 1) / (ro * (2-ro))))
+    return (NA)
+  
+  if (p == 0)
+    return ((1-ro)*(ro))
+  
+  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
+  d <- find.proper.range(d)
+  
+  if(nrow(d) < 1)
+    return (NA)
+  
+  return (d$P_n0[1]+d$P_n1[1]- p*sum(d$P_n0[1:(n+1)]))
 }
 
 expected.queue.length <- function(ro, p, accuracy = ACC)
@@ -107,61 +177,116 @@ expected.queue.length <- function(ro, p, accuracy = ACC)
   return (l)
 }
 
-plot.queue.length <- function(ro, accuracy = ACC, reso = 0.02)
+conditional.expected.queue.length <- function(ro, p, k, accuracy = ACC)
 {
-  f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
+  if (ro >= MAX_RO)
+    return (Inf)
   
-  p <- seq(0, 1, reso)
-  Lp <- sapply(p, f)
+  if (p <=  ((ro - 1) / (ro * (2-ro))))
+    return (Inf)
   
-  plot(p, Lp, type='l')
-  abline(v = ((ro - 1) / (ro * (2-ro))))
+  if (p == 0)
+    return (ro / (1-ro))
   
-  return (cbind(p, Lp))
+  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
+  d <- find.proper.range(d)
+  
+  if(nrow(d) < 1)
+    return (NA)
+  
+  residue <- ((1-k)+k*p*ro)/(p*ro+1) - sum(d[, paste("P_n", k, sep = "")])
+  l <- calc.conditional.expected.value(d, k) + residue*nrow(d)
+  
+  return (l)
 }
 
-calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, pl = TRUE, readlp = TRUE)
+plot.queue.length <- function(ro, accuracy = ACC, reso = 0.02)
+{
+  f1 <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
+  f2 <- function(p) { return (conditional.expected.queue.length(ro, p, 1, accuracy)) }
+  f3 <- function(p) { return (conditional.expected.queue.length(ro, p, 0, accuracy)) }
+  
+  p <- seq(0, 1, reso)
+  Lp1 <- sapply(p, f1)
+  Lp2 <- sapply(p, f2)
+  Lp3 <- sapply(p, f3)
+  
+  ylim <- c(min(fixedvals(c(Lp1, Lp2, Lp3))), max(fixedvals(c(Lp1, Lp2, Lp3))))
+  
+  plot(p, Lp1, type='l', ylim = ylim, ylab = "")
+  par(new=T)
+  plot(p, Lp2, type='l', col = "blue", ylim = ylim, ylab = "")
+  par(new=T)
+  plot(p, Lp3, type='l', col = "red", ylim = ylim, ylab = "")
+  abline(v = ((ro - 1) / (ro * (2-ro))))
+  
+#   return (cbind(p, Lp))
+}
+
+plot.prob.n <- function(n, ro, accuracy = ACC, reso = 0.02)
+{
+  f <- function(p) { return (prob.n(n, ro, p, accuracy)) }
+  
+  p <- seq(0, 1, reso)
+  pn <- sapply(p, f)
+  
+  plot(p, pn, type='l')
+  
+  return (pn)
+}
+
+plot.prob.n0 <- function(n, ro, accuracy = ACC, reso = 0.02)
+{
+  f <- function(p) { return (prob.n0(n, ro, p, accuracy)) }
+  
+  p <- seq(0, 1, reso)
+  pn <- sapply(p, f)
+  
+  plot(p, pn, type='l')
+  
+  return (pn)
+}
+
+plot.probs.to.n <- function(n, ro, accuracy = ACC, reso = 0.02)
+{
+  f <- function(p) { return (probs.to.n(n, ro, p, accuracy)) }
+  
+  p <- seq(0, 1, reso)
+  pn <- sapply(p, f)
+  
+  plot(p, pn, type='l')
+  
+  return (pn)
+}
+
+calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TRUE)
 {
   if (ro < 1 & gamma <= 1 - ro)
     return (0)
-  
-  f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
   
   if (readlp){
     d <- get.p.Lp(ro)
     p <- d$p
     Lp <- d$Lp
+    Lp0 <- d$Lp0
   }
   
   else{
+    f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
+    f0 <- function(p) { return (conditional.expected.queue.length(ro, p, 0, accuracy)) }
+    
     p <- seq(0, 1, reso)
     Lp <- sapply(p, f)
+    Lp0 <- sapply(p, f0)
   }
   
-  Vp <- gamma*Lp/(1+p*ro) - 1
+  Vp <- gamma*Lp0/(1+p*ro) - 1
   min_elem <- which.min(abs(Vp))
   
-  if(pl)
-  {
-    Vs_p <- (1 + gamma*Lp*p*ro/(1+p*ro))
-    Vn_p <- gamma*Lp
-    ylimUp <- max(fixedvals(c(Vs_p, Vn_p, Vp)))
-    ylimLo <- min(fixedvals(c(Vs_p, Vn_p, Vp)))
-    plot(p, Vs_p, col="blue", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
-    textbox(x = c(0, 1), y = tail(fixedvals(Vs_p),1), textlist = c("Cost of Sensing"), box = F, justify = 'r' , cex = 0.7, col = "blue")
-    par(new=T)
-    plot(p, Vn_p, col="green", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
-    textbox(x = c(0, 1), y = tail(fixedvals(Vn_p),1), textlist = c("Cost of Not-Sensing"), box = F, justify = 'r' , cex = 0.7, col = "green")
-    par(new=T)
-    plot(p, Vp, col = ifelse( Vp == Vp[min_elem],'red','black'), type='b', lwd = 2, xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
-    abline(0, 0, lty=2)
-    title(paste("Value vs. p; gamma = ", gamma, "; ro = ", ro, sep = ""))
-  }
-  
-  if (all(Vp[!is.na(Vp)] > 0))
+  if (all(Vp[!is.na(Vp)] < 0))
     return (1)
   
-  if (all(Vp[!is.na(Vp)] < 0))
+  if (all(Vp[!is.na(Vp)] > 0))
     return (0)
   
   if (!is.na(p[min_elem]) & !is.infinite(p[min_elem]))
@@ -169,6 +294,37 @@ calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, pl = TRUE, readlp 
   
   else
     return (NA)
+}
+
+plot.costs.chart <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TRUE)
+{
+  if (readlp){
+    d <- get.p.Lp(ro)
+    p <- d$p
+    Lp <- d$Lp
+    Lp0 <- d$Lp0
+  }
+  
+  else{
+    f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
+    f0 <- function(p) { return (conditional.expected.queue.length(ro, p, 0, accuracy)) }
+    
+    p <- seq(0, 1, reso)
+    Lp <- sapply(p, f)
+    Lp0 <- sapply(p, f0)
+  }
+  
+  Vs_p <- (1 + gamma*Lp0*p*ro/(1+p*ro))
+  Vn_p <- gamma*Lp
+  ylimUp <- max(fixedvals(c(Vs_p, Vn_p)))
+  ylimLo <- min(fixedvals(c(Vs_p, Vn_p)))
+  plot(p, Vs_p, col="blue", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
+  textbox(x = c(0, 1), y = tail(fixedvals(Vs_p),1), textlist = expression(C[S]), box = F, justify = 'r' , cex = 1.7, col = "blue")
+  par(new=T)
+  plot(p, Vn_p, col="green", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
+  textbox(x = c(0, 1), y = tail(fixedvals(Vn_p),1), textlist = expression(C[N]), box = F, justify = 'r' , cex = 1.7, col = "green")
+  par(new=T)
+  title(main = bquote(gamma == ~.(gamma) ~ rho == ~ .(ro)), ylab = "Cost", xlab = bquote(p))
 }
 
 p.ro.chart.for.given.gamma <- function(gamma, ro_seq = RO_SEQ)
@@ -197,7 +353,7 @@ accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ, ro_x
     textbox(x = c(tx-1, tx+1), y = ty+0.025, textlist = c("1/gamma =",round(1/gamma,4)), box = F, justify = 'c' , cex = 0.7, col = color)
     par(new = T)
   }
-  title(main = "P(eq) vs. ro", xlab = "ro", ylab = "P(eq)")
+  title(main = "p_{e} vs. rho", xlab = "rho", ylab = "p_{e}")
   par(new = F)
 }
 
