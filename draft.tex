@@ -18,6 +18,8 @@
 \numberwithin{equation}{section}
 
 \newtheorem{proposition}{Proposition}[section]
+\newtheorem{lemma}{Lemma}[proposition]
+
 
 \begin{document}
 
@@ -142,42 +144,64 @@ We now intend to find the maximum throughput of the system. For convenience we u
 \end{equation}
 which is a monotone decreasing function in $p$ for every $\rho\in(0,\infty)$. 
 
-The stochastic process representing the sequence of arrivals over time to the queue served by $S_{1}$ is not poissonian. This is because the inter-arrival times in the queue depend on the decision of each costumer whether he senses or not, and, if does so, whether he's accepted to immediate service. Thus, we model this sub-system as a G/M/1 with unnecessarily independent inter-arrival times, and for the system to remain stable we demand $\tilde{\rho}(p,\rho) < 1$, or equivalently:
-\[ p>\frac{\rho - 1}{\rho(\rho-2)} \]
+The stochastic process representing the sequence of arrivals over time to the queue served by $S_{1}$ is not poissonian. This is because the inter-arrival times in the queue depend on the decision of each costumer whether he senses or not, and, if does so, whether he's accepted to immediate service. Thus, we model this sub-system as a G/M/1 with unnecessarily independent inter-arrival times, and for the system to remain stable we demand $\tilde{\rho}(p,\rho) < 1$.
 
 \begin{proposition}
-For each $\rho\in(0,\varphi)$, there exists a value of $p$ for which the system is stable, where
+For each $\rho\in(0,\varphi)$, there exists a lower bound for $p$, denoted $\underline{p}$, such that for every $p \in (\underline{p}, 1]$ the system is stable, where
 $\varphi \approx 1.618$ is the golden ratio.
 \end{proposition}
 
 \begin{proof}
+As discussed, a stable system must satisfy: $\tilde{\rho}(p,\rho) < 1$. Substitute (\ref{EffectiveRate}) and isolate $p$ in the inequality to get an equivalent stability criterion:
+\[ p > \frac{\rho - 1}{\rho(\rho-2)} =: \underline{p}\]
+from which it is clear that, given a value $\rho$, the system is stable for all $p \in (\underline{p},1]$.
+
 Finding the maximum throughput we assume that $p=1$, which means everyone try to attain service in $S_{2}$ before they join the queue. This is followed by the monotonicity of $\tilde{\rho}(p,\rho)$. Then, from (\ref{EffectiveRate}), the stability criterion is:
 \[ \tilde{\rho}(1,\rho)=\frac{\rho^2}{1+\rho}<1 \quad\Leftrightarrow\quad \rho^2-\rho-1<0 \quad\Leftrightarrow\quad \rho < \frac{1+\sqrt{5}}{2}=\varphi \]
-where $\varphi$ is the well-studied golden ratio, concluding that for every $\rho\in(0,\varphi)$ and $p=1$, the system is stable.
+where $\varphi$ is the well-studied golden ratio, concluding that for every $\rho\in(0,\varphi)$ and $p \in (\underline{p},1]$, the system is stable.
 \end{proof}
 
 \newpage
 \section{Equilibrium Strategy}
-In this section we discuss the states and strategies of (Nash) equilibrium in the system. Let $c_{w}>0$ be the time-expense for a single time unit of an individual costumer waiting in line, and $c_{s}>0$ be the price of sensing (paid by each costumer who chooses to sense, regardless of the consequences of his action). Since all costumers are identical, so are their equilibrium strategies. In addition, each one arriving at the system is eventually attained to service, and therefore, neither the reward from service nor the time spent in service is relevant. Of course, the state of the system, including the length of the queue and the status of the servers, is unobservable as mentioned, and unknown to the costumer at the time he makes his decision. We assume the system is not over-loaded (i.e: $\rho<\varphi$) and that all costumers act to reduce their expected cost to minimum. Denote $C_{S}(p)$ and $C_{N}(p)$ the expected cost of an individual who chooses to sense and an individual who chooses not to sense, respectively, as the others' probability of sensing is $p$.
+In this section we discuss the states and strategies of (Nash) equilibrium in the system. Let $c_{w}>0$ be the time-expense for a single time unit of an individual costumer waiting in line, and $c_{s}>0$ be the price of sensing (paid by each costumer who chooses to sense, regardless of the consequences of his action). Since all costumers are identical, and each one arriving at the system is eventually attained to service, neither the reward from service nor the time spent in service is relevant. Of course, the state of the system, including the length of the queue and the status of the servers, is unobservable as mentioned, and unknown to the costumers at the time they make their decisions. We assume the system is not over-loaded (i.e: $\rho<\varphi$) and that all costumers act to reduce their expected cost to minimum. Denote $C_{S}(p)$ and $C_{N}(p)$ the expected cost of an individual who chooses to sense and an individual who chooses not to sense, respectively, given that the others' probability of sensing is $p$.
 \begin{equation}\begin{cases}
- 	C_{N}(p) = \frac{c_{w}}{\mu}E(L(p)) \\
-	C_{S}(p) = c_{s} + Pr(X_2=1) \cdot C_{N}(p) = c_{s} + \frac{p\Lambda}{\mu+p\Lambda}\frac{c_{w}}{\mu}L(p) 
+ 	C_{N}(p) = \frac{c_{w}}{\mu}E\left[L(p)\right] \\
+	C_{S}(p) = c_{s} + Pr(X_2=1) \cdot \frac{c_{w}}{\mu} E\left[L(p)\mid X_{2}=1\right] 
 \end{cases}
 \label{LossFunc}
 \end{equation}
-where $L(p)$ is the expected queue length with $p$ the proportion of the population that sense. Denote $\gamma :=\sfrac{c_{w}}{\mu c_{s}}$. The value of $\sfrac{1}{\gamma}$ can be interpreted as the normalized cost of sensing in terms of the cost of waiting a single service period, that is to say, for how many service completions one has to wait, on average, in order to pay a total time expense of $c_{s}$. Then:
+where $L(p)$ is a random variable representing the observed queue length upon arrivals, with $p$ the proportion of the population that sense. Denote $\gamma :=\sfrac{c_{w}}{\mu c_{s}}$. The value of $\sfrac{1}{\gamma}$ can be interpreted as the normalized cost of sensing in terms of the cost of waiting a single service period, that is to say, for how many service completions one has to wait, on average, in order to pay a total time expense of $c_{s}$. Then:
 
-\begin{proposition} For every $\rho\in(0,\varphi)$, and for every value  $\gamma>0$, a unique equilibrium strategy $p_{e}\in[0,1]$ exists.
+\begin{proposition} For every $\rho\in(0,\varphi)$, and for every value $\gamma>0$, a unique equilibrium strategy $p_{e}\in[0,1]$ exists.
 \end{proposition}
 
 \begin{proof}
 
-$p$ is an equilibrium strategy if no individual can benefit from choosing any alternative strategy. Thus, for $p$ to be an equilibrium, it must hold that $C_{N}(p)=C_{S}(p)$. Divide both sides of the latter equation by $c_{s}$ and substitute the values in (\ref{LossFunc}) to get:
+$p$ is an equilibrium strategy if no individual can benefit from choosing any alternative strategy. Thus, for $p \in (0,1)$ to be an equilibrium, the following criterion must hold: 
+\begin{equation}
+C_{N}(p)=C_{S}(p) \label{EqCriterion}
+\end{equation}
+Note that:
+\[ E\left[L(p)\right] = Pr(X_2=1) \cdot E\left[L(p)\mid X_2=1\right] + Pr(X_2=0) \cdot E\left[L(p)\mid X_2=0\right] \]
+Divide both sides of (\ref{EqCriterion}) by $c_{s}$ and substitute the values in (\ref{LossFunc}), concluding that for $p \in (0,1)$, $p_{e} = p$ if and only if:
+\begin{equation}
+\gamma Pr(X_2=0) \cdot E\left[L(p)\mid X_2=0\right] = 1 \quad\Leftrightarrow\quad \gamma E\left[L(p)\mid X_2=0\right]=1+p\rho \label{EqExistCriterion}
+\end{equation}
 
-\[ C_{N}(p) = C_{S}(p) \quad\Leftrightarrow\quad \gamma L(p) = 1 + \frac{p \rho}{1 + p\rho} \gamma L(p) \quad\Leftrightarrow\quad \gamma L(p)=1+p\rho \]
+\begin{lemma}
+The function $E\left[L(p)\mid X_2=0\right]$ is continuous and monotone non-increasing in $p$. \label{MonotonicityLemma}
+\end{lemma}
 
-Note that the function $L(p)$ is continuous and strictly monotone decreasing in $p$, and therefore if there exists a solution to the equation then it is unique. Suppose that \[\forall p \in [0,1]: C_{N}(p) > C_{S}(p)\] then sensing is a dominant strategy for each individual and $p_{e}=1$. Similarly, if \[\forall p \in [0,1]: C_{N}(p) < C_{S}(p)\] then $p_{e}=0$.
+\begin{proof}
+To-do...
+\end{proof}
 
+Note that the function $1+p\rho$ is continuous and strictly monotone increasing in $p$, and therefore, using lemma \ref{MonotonicityLemma}, we deduce that if there exists a solution to (\ref{EqExistCriterion}) then it is unique. 
+Suppose that
+\[ \forall p \in (0,1): \gamma E\left[L(p)\mid X_2=0\right] > 1+p\rho \] 
+Then, following the monotonicity property, $\gamma E\left[L(1)\mid X_2=0\right] \geq 1+\rho$, or equivalently: $C_{N}(1) \geq C_{S}(1)$. This means that $p_{e}=1$, and sensing is a dominant strategy for each individual, and therefore the equilibrium is unique. Similarly, if: 
+\[ \forall p \in (0,1): \gamma E\left[L(p)\mid X_2=0\right] < 1+p\rho \] 
+then $C_{N}(1) \leq C_{S}(1)$, and $p_{e}=0$, which is unique.
 \end{proof}
 
 This result is not as intuitive as it seems, since the function $L_{S}(p)$ is not necessarily monotonic (as shown in Fig. \ref{cost_vs_p_2_05} and \ref{cost_vs_p_05_085}). This fact can be explained as follows: an increase in the proportion of costumers that sense, results in a decrease of the probability to attain service in $S_{2}$ on the first hand. It also decreases the expected queue length, and shortens the waiting time of the costumers who failed to attain $S_{2}$ on the other hand. Nevertheless, the equilibrium probability $p_{e}$ is always unique.
