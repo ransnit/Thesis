@@ -4,6 +4,8 @@ RO_SEQ <- seq(RO_RESO, MAX_RO, RO_RESO)
 ACC <- 1e-6
 MIN_N <- 20
 LP_VALS <- readRDS("LPVals.rds")
+CEX_MAIN <- 2.5
+CEX_LAB <- 1.4
 
 effective_ro <- function(ro, p) { return (ro*(1 - p/(1+p*ro)))}
 fixedvals <- function(x) { return (x[!is.infinite(x) & !is.na(x)]) }
@@ -261,7 +263,7 @@ plot.probs.to.n <- function(n, ro, accuracy = ACC, reso = 0.02)
 
 calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TRUE)
 {
-  if (ro < 1 & gamma <= 1 - ro)
+  if (ro <= 1 / (1 + gamma))
     return (0)
   
   if (readlp){
@@ -284,10 +286,10 @@ calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TRUE)
   min_elem <- which.min(abs(Vp))
   
   if (all(Vp[!is.na(Vp)] < 0))
-    return (1)
+    return (0)
   
   if (all(Vp[!is.na(Vp)] > 0))
-    return (0)
+    return (1)
   
   if (!is.na(p[min_elem]) & !is.infinite(p[min_elem]))
     return (p[min_elem])
@@ -318,20 +320,21 @@ plot.costs.chart <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TR
   Vn_p <- gamma*Lp
   ylimUp <- max(fixedvals(c(Vs_p, Vn_p)))
   ylimLo <- min(fixedvals(c(Vs_p, Vn_p)))
-  plot(p, Vs_p, col="blue", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
-  textbox(x = c(0, 1), y = tail(fixedvals(Vs_p),1), textlist = expression(C[S]), box = F, justify = 'r' , cex = 1.7, col = "blue")
+  plot(p, Vs_p, col="gray70", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp), lwd = 2)
+  text(x = 0.95, y = tail(fixedvals(Vs_p),1)+0.1, labels = bquote(C[S]), cex = 1.7, col = "gray70")
   par(new=T)
-  plot(p, Vn_p, col="green", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp))
-  textbox(x = c(0, 1), y = tail(fixedvals(Vn_p),1), textlist = expression(C[N]), box = F, justify = 'r' , cex = 1.7, col = "green")
+  plot(p, Vn_p, col="gray10", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp), lwd = 2)
+  text(x = 0.95, y = tail(fixedvals(Vn_p),1)+0.1, labels = bquote(C[N]), cex = 1.7, col = "gray10")
   par(new=T)
-  title(main = bquote(gamma == ~.(gamma) ~ rho == ~ .(ro)), ylab = "Cost", xlab = bquote(p))
+  title(main = bquote("Cost v.s." ~ p ~ ";" ~ gamma == ~.(gamma) ~ "," ~ rho == ~ .(ro)), cex.main = CEX_MAIN,
+        ylab = "Cost", cex.lab = CEX_LAB, xlab = bquote(p))
 }
 
 p.ro.chart.for.given.gamma <- function(gamma, ro_seq = RO_SEQ)
 {
-  calc.p.eq.wrapper <- function(ro) { return (calc.p.eq(ro, gamma, reso = 0.01, pl = FALSE)) }
+  calc.p.eq.wrapper <- function(ro) { return (calc.p.eq(ro, gamma, reso = 0.01)) }
   p_vals <- sapply(ro_seq, calc.p.eq.wrapper)
-  plot(ro_seq, p_vals, type='b')
+#   plot(ro_seq, p_vals, type='b')
   return (p_vals)
 }
 
@@ -340,7 +343,7 @@ require('plotrix')
 accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ, ro_xlim = c(0, MAX_RO))
 {
   ngraphs <- length(gamma_vals)
-  colors <- c("blue", "red", "green")
+  colors <- c("gray0", "gray45", "gray70")
   for (i in 1:ngraphs)
   {
     p_vals <- p_vec_list[[i]]
@@ -350,10 +353,13 @@ accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ, ro_x
     txtanchor <- which(p_vals >= 0.1*ngraphs-0.075*(ngraphs-i))[1]
     tx <- ro_seq[txtanchor]
     ty <- p_vals[txtanchor]
-    textbox(x = c(tx-1, tx+1), y = ty+0.025, textlist = c("1/gamma =",round(1/gamma,4)), box = F, justify = 'c' , cex = 0.7, col = color)
+#     textbox(x = c(tx-1, tx+1), y = ty+0.025, textlist = c("1/gamma =",round(1/gamma,4)), box = F, justify = 'c' , cex = 0.7, col = color)
+    tmp <- round(1/gamma,4)
+    text(x = tx, y = ty+0.025, labels = bquote(gamma^-1  == ~ .(tmp)), cex = 1.2, col = color)
     par(new = T)
   }
-  title(main = "p_{e} vs. rho", xlab = "rho", ylab = "p_{e}")
+  title(main = bquote(p[e] ~ v.s. ~ rho), cex.main = CEX_MAIN, 
+        xlab = bquote(rho), ylab = bquote(p[e]), cex.lab = CEX_LAB)
   par(new = F)
 }
 
