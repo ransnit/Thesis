@@ -51,6 +51,12 @@ calc.p00.from.table <- function(d, accuracy)
   return ((1 - b) / a)
 }
 
+calc.p00 <- function(ro, p, accuracy = ACC)
+{
+  d <- calc.prob.table.by.p00(ro, p, accuracy)
+  return (calc.p00.from.table(d, accuracy))
+}
+
 calc.prob.table <- function(d, accuracy)
 {
   p00 <- calc.p00.from.table(d, accuracy)
@@ -200,6 +206,18 @@ conditional.expected.queue.length <- function(ro, p, k, accuracy = ACC)
   l <- calc.conditional.expected.value(d, k) + residue*nrow(d)
   
   return (l)
+}
+
+conditional.expected.queue.length2 <- function(ro, p, accuracy = ACC)
+{
+  p_00 <- calc.p00(ro,p)
+  g_ <- 1 - ro*(1 - p / (1 + p*ro))
+  dg_ <- g_ + (1-ro)*p_00
+  g <- -p*ro^2 -ro +2*p*ro +1
+  dg <- ro^2 -3*p*ro^2 -4*ro + 4*p*ro +2
+  res <- (dg_*g - dg*g_) / g^2
+  
+  return ((1+p*ro)*res)
 }
 
 plot.queue.length <- function(ro, accuracy = ACC, reso = 0.02)
@@ -361,6 +379,18 @@ accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ, ro_x
   title(main = bquote(p[e] ~ v.s. ~ rho), cex.main = CEX_MAIN, 
         xlab = bquote(rho), ylab = bquote(p[e]), cex.lab = CEX_LAB)
   par(new = F)
+}
+
+temp <- function(ro)
+{
+  l1<- sapply(seq(0, 1, 0.05), FUN = function(p){return(conditional.expected.queue.length(ro,p,0))})
+  l2<- sapply(seq(0, 1, 0.05), FUN = function(p){return(conditional.expected.queue.length2(ro,p))})
+  
+  ylim <- c(0, max(fixedvals(c(l1,l2))))
+  
+  plot(l1, type="l", col="red", ylim = ylim)
+  par(new=T)
+  plot(l2, type="l", col="blue", ylim = ylim)
 }
 
 p.ro.chart <- function(vals, ro_xlim = c(0, MAX_RO))
