@@ -91,34 +91,34 @@ Denote $p$ the probability that a costumer senses $S_{2}$, and denote $(X_{1}(t)
 
 \begin{equation}
   \begin{cases}
-    \Lambda P_{0,0} - \mu P_{1,0}  - \mu P_{0,1} = 0 ,\\
-    (\mu+\Lambda) P_{0,1} - p\Lambda P_{0,0}  - \mu P_{1,1} = 0  .
+    \Lambda P_{0,0} - \mu P_{1,0}  - \mu P_{0,1} = 0\:,\\
+    (\mu+\Lambda) P_{0,1} - p\Lambda P_{0,0}  - \mu P_{1,1} = 0\:.
   \end{cases}
 	\label{StateEq1}
 \end{equation}
 
 \begin{equation}
   \forall n \in \lbrace 1, 2, \ldots \rbrace: \ \begin{cases}
-    (\mu+\Lambda) P_{n,0} - (1-p) \Lambda P_{n-1, 0} - \mu P_{n+1,0}  - \mu P_{n,1} = 0,\\
-    (2\mu+\Lambda) P_{n,1} - p\Lambda P_{n,0}  - \Lambda P_{n-1,1} - \mu P_{n+1,1} = 0.
+    (\mu+\Lambda) P_{n,0} - (1-p) \Lambda P_{n-1, 0} - \mu P_{n+1,0}  - \mu P_{n,1} = 0\:,\\
+    (2\mu+\Lambda) P_{n,1} - p\Lambda P_{n,0}  - \Lambda P_{n-1,1} - \mu P_{n+1,1} = 0\:.
   \end{cases} \label{StateEq2}
 \end{equation}
 where $P_{i,j}$ is the stationary probability that the system is in state $(i,j)$. These equations induce the following relationship:
 
 \begin{equation}
   \forall n \in \lbrace 0, 1, 2, \ldots \rbrace: \ 
-    P_{n+1,0} + P_{n+1,1} = \dfrac{\Lambda}{\mu}((1-p) P_{n,0} +  P_{n, 0}), \label{RecurtionRule}
+    P_{n+1,0} + P_{n+1,1} = \dfrac{\Lambda}{\mu}((1-p) P_{n,0} + P_{n, 1})\:, \label{RecurtionRule}
 \end{equation}
 
 By the assumption that each individual chooses randomly and independently whether or not to sense, we deduce that the sub-system $S_{2}$ can be considered as an M/M/1/1 queue (Erlang's Loss Model) with arrival rate $p\Lambda$ and service rate $\mu$. Therefore, the {\it loss-probability} of $S_{2}$ (i.e., the probability that a costumer sensing $S_{2}$ will find it occupied) is:
 \begin{equation}
-	\pr(X_2=1) = \sum\limits_{i=0}^{\infty} P_{i, 1} = \dfrac{p\Lambda}{\mu+p\Lambda}, \label{LossProb}
+	\pr(X_2=1) = \sum\limits_{i=0}^{\infty} P_{i, 1} = \dfrac{p\Lambda}{\mu+p\Lambda}\:, \label{LossProb}
 \end{equation}
 and its complement:
 \begin{equation}
-	\pr(X_2=0) = 1-\pr(X_2=1) = \sum\limits_{i=0}^{\infty} P_{i, 0} = \dfrac{\mu}{\mu+p\Lambda}. \label{OMLossProb}
+	\pr(X_2=0) = 1-\pr(X_2=1) = \sum\limits_{i=0}^{\infty} P_{i, 0} = \dfrac{\mu}{\mu+p\Lambda}\:. \label{OMLossProb}
 \end{equation}
-One can also derive the above formula by summing the right-hand-sides of the equations in (\ref{RecurtionRule}) for $n=0,1,2,\ldots$ and equating the sum of this infinite series to $1-(P_{0,0}+P_{0,1})$, considering that in steady state of the system: \[ p\Lambda\sum_{i=0}^{\infty}P_{i,0} - \mu \sum_{i=0}^{\infty}P_{i,1} = 0.\]
+One can also derive the above formula by summing the right-hand-sides of the equations in (\ref{RecurtionRule}) for $n=0,1,2,\ldots$ and equating the sum of this infinite series to $1-(P_{0,0}+P_{0,1})$, considering that in steady state of the system: \[ p\Lambda\sum_{i=0}^{\infty}P_{i,0} - \mu \sum_{i=0}^{\infty}P_{i,1} = 0\:.\]
 
 Summing the equations in (\ref{RecurtionRule}) for $n=0,1,2,\ldots$ and substituting (\ref{LossProb}) and (\ref{OMLossProb}) we get:
 
@@ -140,38 +140,51 @@ It can be seen from (\ref{Forms}) that, for given constants $p$ and $\sfrac{\Lam
 
 \section{System-utilization}
 We now intend to find the maximum utilization of the system. For convenience we use the notation $\rho:=\sfrac{\Lambda}{\mu}$. The {\it effective-arrival-rate} to the queue, $\tilde{\lambda}(p,\rho)$, consists of two streams of arrivals: costumers who join the queue without sensing at all (whose proportion is $1-p$) and costumers who sense $S_{2}$ and find it busy (whose proportion is $p \cdot \pr(X_2=1)$). Therefore,
+\[ \tilde{\lambda}(p,\rho) = (1-p)\Lambda + \pr(X_2=1)\cdot p \Lambda\:. \]
+Substituting (\ref{LossProb}) and dividing by $\mu$ we get the {\it effective-utilization}, $\tilde{\rho}(p,\rho)$:
 \begin{equation}
-	\tilde{\lambda}(p,\rho) = (1-p)\Lambda + \pr(X_2=1)\cdot p \Lambda = \rho - \frac{1}{1+p\rho}p\rho \label{EffectiveRate}
+\tilde{\rho}(p,\rho) := \frac{1}{\mu}\tilde{\lambda}(p,\rho) = \rho - \frac{1}{1+p\rho}p\rho\:, \label{EffectiveUtil}
 \end{equation}
-which is a monotone decreasing function in $p$ for every $\rho\in(0,\infty)$. 
+which is monotone decreasing in $p$ for every $\rho\in(0,\infty)$. 
 
-The stochastic process representing the sequence of arrivals over time to the queue served by $S_{1}$ is not poissonian. This is because the inter-arrival times in the queue depend on the decision of each costumer whether he senses or not, and, if does so, whether he's accepted to immediate service. Thus, we model this sub-system as a G/M/1 with unnecessarily independent inter-arrival times, and for the system to remain stable we demand $\tilde{\rho}(p,\rho) < 1$.
+The stochastic process representing the stream of arrivals over time to the queue served by $S_{1}$ is not poissonian. This is because the inter-arrival times to the queue are not i.i.d., and the arrival-rate increases when $S_2$ is busy in comparison to the arrival-rate in its idle periods. Thus, we model this sub-system as a G/M/1 with possibly dependent inter-arrival times, and for the system to remain stable we assume $\tilde{\rho}(p,\rho) < 1$.
+
+Recall the {\it golden ratio}, $\varphi = \sfrac{1}{2} \cdot (1+\sqrt{5})\approx 1.618$. Then:
 
 \begin{proposition}
-For each $\rho\in(0,\varphi)$, there exists a lower bound for $p$, denoted $\underline{p}$, such that for every $p \in (\underline{p}, 1]$ the system is stable, where
-$\varphi \approx 1.618$ is the golden ratio.
+For each $\rho\in(0,\varphi)$, there exists a lower bound for $p$, denoted $\underline{p}$, such that for every $p \in (\underline{p}, 1]$ the system is stable.
 \end{proposition}
 
 \begin{proof}
-As discussed, a stable system must satisfy: $\tilde{\rho}(p,\rho) < 1$. Substitute (\ref{EffectiveRate}) and isolate $p$ in the inequality to get an equivalent stability criterion:
+As discussed, a stable system must satisfy: $\tilde{\rho}(p,\rho) < 1$. Substitute (\ref{EffectiveUtil}) and isolate $p$ in the inequality to get an equivalent stability criterion:
 \[ p > \frac{\rho - 1}{\rho(\rho-2)} =: \underline{p}\]
 from which it is clear that, given a value $\rho$, the system is stable for all $p \in (\underline{p},1]$.
 
-Finding the maximum throughput we assume that $p=1$, which means everyone try to attain service in $S_{2}$ before they join the queue. This is followed by the monotonicity of $\tilde{\rho}(p,\rho)$. Then, from (\ref{EffectiveRate}), the stability criterion is:
+Finding the maximum throughput we assume that $p=1$, which means everyone try to attain service in $S_{2}$ before they join the queue. This is followed by the monotonicity of $\tilde{\rho}(p,\rho)$. Then, from (\ref{EffectiveUtil}), the stability criterion is:
 \[ \tilde{\rho}(1,\rho)=\frac{\rho^2}{1+\rho}<1 \quad\Leftrightarrow\quad \rho^2-\rho-1<0 \quad\Leftrightarrow\quad \rho < \frac{1+\sqrt{5}}{2}=\varphi \]
 where $\varphi$ is the well-studied golden ratio, concluding that for every $\rho\in(0,\varphi)$ and $p \in (\underline{p},1]$, the system is stable.
 \end{proof}
 
 \newpage
 \section{Equilibrium Strategy}
-In this section we discuss the states and strategies of (Nash) equilibrium in the system. Let $c_{w}>0$ be the time-expense for a single time unit of an individual costumer waiting in line, and $c_{s}>0$ be the price of sensing (paid by each costumer who chooses to sense, regardless of the consequences of his action). Since all costumers are identical, and each one arriving at the system is eventually attained to service, neither the reward from service nor the time spent in service is relevant. Of course, the state of the system, including the length of the queue and the status of the servers, is unobservable as mentioned, and unknown to the costumers at the time they make their decisions. We assume the system is not over-loaded (i.e: $\rho<\varphi$) and that all costumers act to reduce their expected cost to minimum. Denote $C_{S}(p)$ and $C_{N}(p)$ the expected cost of an individual who chooses to sense and an individual who chooses not to sense, respectively, given that the others' probability of sensing is $p$.
+In this section we discuss the states and (Nash) equilibrium strategies in the system. Let $c_{w}>0$ be the waiting cost per unit time of an individual costumer waiting in line, and $c_{s}>0$ be the cost of sensing (incurred by each costumer who chooses to sense, regardless of the consequences of his action). Since all costumers are identical, and each one arriving at the system is eventually attained to service, neither the reward from service nor the time spent in service is relevant. Of course, the state of the system, including the length of the queue and the status of the servers, is unobservable as mentioned, and unknown to the costumers at the time they make their decisions. We assume the system is not overloaded (i.e., $\rho<\varphi$) and that all costumers act to reduce their expected cost to minimum. Denote $C_{S}(p)$ and $C_{N}(p)$ the expected cost of an individual who chooses to sense and an individual who chooses not to sense, respectively, given that the others' probability of sensing is $p$.
 \begin{equation}\begin{cases}
  	C_{N}(p) = \frac{c_{w}}{\mu}\e\left[L(p)\right] \\
 	C_{S}(p) = c_{s} + \pr(X_2=1) \cdot \frac{c_{w}}{\mu} \e\left[L(p)\mid X_{2}=1\right] 
 \end{cases}
 \label{LossFunc}
 \end{equation}
-where $L(p)$ is a random variable representing the observed queue length upon arrivals, with $p$ the proportion of the population that sense. Denote $\gamma :=\sfrac{c_{w}}{\mu c_{s}}$. The value of $\sfrac{1}{\gamma}$ can be interpreted as the normalized cost of sensing in terms of the cost of waiting a single service period, that is to say, for how many service completions one has to wait, on average, in order to pay a total time expense of $c_{s}$. Then:
+where $L(p)$ is a random variable representing the observed queue length (including the costumer in service) upon arrival to the system, with $p$ the proportion of the population that sense. 
+
+\begin{proposition}
+The function $\e\left[L(p)\mid X_2=0\right]$ is continuous and monotone non-increasing in $p$. \label{MonotonicityProp}
+\end{proposition}
+
+\begin{proof}
+To-do...
+\end{proof}
+
+Denote $\gamma :=\sfrac{c_{w}}{\mu c_{s}}$. The value of $\sfrac{1}{\gamma}$ can be interpreted as the normalized cost of sensing in terms of the cost of waiting a single service period, that is to say, for how many service completions one has to wait, on average, in order to pay a total time expense of $c_{s}$. Then:
 
 \begin{proposition} For every $\rho\in(0,\varphi)$, and for every value $\gamma>0$, a unique equilibrium strategy $p_{e}\in[0,1]$ exists.
 \end{proposition}
@@ -180,40 +193,43 @@ where $L(p)$ is a random variable representing the observed queue length upon ar
 
 $p$ is an equilibrium strategy if no individual can benefit from choosing any alternative strategy. Thus, for $p \in (0,1)$ to be an equilibrium, the following criterion must hold: 
 \begin{equation}
-C_{N}(p)=C_{S}(p) \label{EqCriterion}
+C_{N}(p)=C_{S}(p)\:. \label{EqCriterion}
 \end{equation}
 Note that:
-\[ \e\left[L(p)\right] = \pr(X_2=1) \cdot \e\left[L(p)\mid X_2=1\right] + \pr(X_2=0) \cdot \e\left[L(p)\mid X_2=0\right] \]
+\[ \e\left[L(p)\right] = \pr(X_2=1) \cdot \e\left[L(p)\mid X_2=1\right] + \pr(X_2=0) \cdot \e\left[L(p)\mid X_2=0\right] \:. \]
 Divide both sides of (\ref{EqCriterion}) by $c_{s}$ and substitute the values in (\ref{LossFunc}), concluding that for $p \in (0,1)$, $p_{e} = p$ if and only if:
 \begin{equation}
-\gamma \pr(X_2=0) \cdot \e\left[L(p)\mid X_2=0\right] = 1 \quad\Leftrightarrow\quad \gamma \e\left[L(p)\mid X_2=0\right]=1+p\rho \label{EqExistCriterion}
+\gamma \pr(X_2=0) \cdot \e\left[L(p)\mid X_2=0\right] = 1\:, 
+\end{equation}
+or,
+\begin{equation}
+\gamma \e\left[L(p)\mid X_2=0\right]=1+p\rho\:. \label{EqExistCriterion}
 \end{equation}
 
-\begin{lemma}
-The function $\e\left[L(p)\mid X_2=0\right]$ is continuous and monotone non-increasing in $p$. \label{MonotonicityLemma}
-\end{lemma}
+Note that the function $1+p\rho$ is continuous and strictly monotone increasing in $p$, and therefore, using proposition \ref{MonotonicityProp}, we deduce that if there exists a solution $p^*$ to (\ref{EqExistCriterion}) then it is unique, and $p_e = p^*$ is a unique equilibrium strategy. 
 
-\begin{proof}
-To-do...
-\end{proof}
-
-Note that the function $1+p\rho$ is continuous and strictly monotone increasing in $p$, and therefore, using lemma \ref{MonotonicityLemma}, we deduce that if there exists a solution to (\ref{EqExistCriterion}) then it is unique. 
-Suppose that
-\[ \forall p \in (0,1): \gamma \e\left[L(p)\mid X_2=0\right] > 1+p\rho \] 
-Following the monotonicity property, this inequality holds if and only if \[ \gamma \e\left[L(1)\mid X_2=0\right] \geq 1+\rho \] or equivalently: $C_{N}(1) \geq C_{S}(1)$. This means that $p_{e}=1$, and sensing is a dominant strategy for each individual, and therefore the equilibrium is unique. Similarly, if: 
+Suppose that:
+\[ \forall p \in (0,1): \gamma \e\left[L(p)\mid X_2=0\right] > 1+p\rho \:.\] 
+Following proposition \ref{MonotonicityProp} and the monotonicity of $1+p\rho$, this inequality holds if and only if \[ \gamma \e\left[L(1)\mid X_2=0\right] \geq 1+\rho \:,\] or equivalently: $C_{N}(1) \geq C_{S}(1)$. This means that $p_{e}=1$, and sensing is a dominant strategy for each individual, and therefore the equilibrium is unique. Similarly, if: 
 \[ \forall p \in (0,1): \gamma \e\left[L(p)\mid X_2=0\right] < 1+p\rho \] 
 then $C_{N}(0) \leq C_{S}(0)$, and $p_{e}=0$, which is unique.
 \end{proof}
 
 This result is not as intuitive as it seems, since the function $L_{S}(p)$ is not necessarily monotonic (as shown in Fig. \ref{cost_vs_p_2_05} and \ref{cost_vs_p_05_085}). This fact can be explained as follows: an increase in the proportion of costumers that sense, results in a decrease of the probability to attain service in $S_{2}$ on the first hand. It also decreases the expected queue length, and shortens the waiting time of the costumers who failed to attain $S_{2}$ on the other hand. Nevertheless, the equilibrium probability $p_{e}$ is always unique.
 
-Suppose now that $p=0$, and $\tilde{\rho}(0,\rho) = \rho < 1$. This is an equilibrium strategy if and only if:
-\[ \gamma \e[L(0)\mid X_2=0] \leq 1 \]
+\begin{proposition}
+The pure strategy $p=0$ ({\it Not-Sense}) is an equilibrium strategy (in other words $p_e=0$) if and only if:
+\[ \rho \leq \frac{1}{1+\gamma} \:.\]
+\end{proposition}
+\begin{proof}
+Assuming that $\tilde{\rho}(0,\rho) = \rho < 1$, from (\ref{EqCriterion}), $p=0$ is an equilibrium strategy if and only if:
+\[ \gamma \e[L(0)\mid X_2=0] \leq 1 \:.\]
 Note that in this case the queue is a regular M/M/1 queue, and 
-\[ \e[L(0)\mid X_2=0] = \e[L(0)] = \frac{\rho}{1-\rho} \] 
+\[ \e[L(0)\mid X_2=0] = \e[L(0)] = \frac{\rho}{1-\rho} \:.\] 
 Thus, a necessary and sufficient condition for $p_{e}=0$ is:
 
-\[ \gamma \frac{\rho}{1-\rho}-1 \leq 0 \quad\Leftrightarrow\quad \rho \leq \frac{1}{1+\gamma} \]
+\[ \gamma \frac{\rho}{1-\rho}-1 \leq 0 \quad\Leftrightarrow\quad \rho \leq \frac{1}{1+\gamma} \:.\]
+\end{proof}
 
 \newpage
 \begin{figure}[h!]
