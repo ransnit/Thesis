@@ -1,405 +1,560 @@
-MAX_RO <- 0.5*(1 + sqrt(5))
-RO_RESO <- 0.05
-RO_SEQ <- seq(RO_RESO, MAX_RO, RO_RESO)
-ACC <- 1e-6
-MIN_N <- 20
-LP_VALS <- readRDS("LPVals.rds")
+Phi <- 0.5*(1 + sqrt(5))
+P_VALS <- seq(0,1,1e-3)
+RO_VALS <- seq(0, Phi, 0.0025)
 CEX_MAIN <- 2.5
 CEX_LAB <- 1.4
 
-effective_ro <- function(ro, p) { return (ro*(1 - p/(1+p*ro)))}
 fixedvals <- function(x) { return (x[!is.infinite(x) & !is.na(x)]) }
 
-get.p.Lp <- function(ro)
+calc.z0 <- function(rho, p)
 {
-  p <- LP_VALS[[paste(ro, "p")]]
-  Lp <- LP_VALS[[paste(ro, "Lp")]]
-  Lp0 <- LP_VALS[[paste(ro, "Lp0")]]
-  
-  return (data.frame(p, Lp, Lp0))
+  gz <- c( (1-p)*rho^2, #z^3
+              -(rho^2 + (3-2*p)*rho), #z^2
+                (2*rho + 2), #z
+                  -1 ) #1
+  roots <- Re(polyroot(rev(gz)))
+  z0 <- roots[roots>0 & roots<1]
+  stopifnot(length(z0) == 1)
+
+  return(z0)
 }
 
-calc.prob.table.by.p00 <- function(ro, p, accuracy = ACC)
+calc.z0.p1 <- function(rho)
 {
-  n <- max(MIN_N, ceiling(log(accuracy, base = effective_ro(ro, p))))
-  d <- data.frame(matrix(NA, n, 6))
-  P_n0.l <- c("P_n0_a", "P_n0_b")
-  P_n1.l <- c("P_n1_a", "P_n1_b")
-  S_n.l <- c("S_n_a", "S_n_b")
-  names(d) <- c(P_n0.l, P_n1.l, S_n.l)
+  sqrrp1 <- sqrt(rho+1)
+  d <- rho*sqrrp1
   
-  t <- 1 - ro*(1 - p / (1 + p*ro)) # t is p00+p01
-  
-  d[1,] <- c(1, 0, -1, t, NA, NA)
-  d[1, S_n.l] <- d[1, P_n1.l] - ro*p*d[1, P_n0.l]
-  
-  for(i in 1:(n-1))
-  {
-    d[i+1, P_n1.l] <- ro*d[i, P_n1.l] + d[i, S_n.l]
-    d[i+1, P_n0.l] <- (1-p)*ro*d[i, P_n0.l] - d[i, S_n.l]
-    d[i+1, S_n.l] <- d[i, S_n.l] + d[i+1, P_n1.l] - ro*p*d[i+1, P_n0.l]
-  }
-  
-  return (d)
+  return ( (sqrrp1-1)/d )
 }
 
-calc.p00.from.table <- function(d, accuracy)
+p0dot <-function(rho, p) 1 / (1+p*rho)
+p1dot <-function(rho, p) 1 - p0dot(rho,p)
+rho.hat <- function(rho, p) rho - p1dot(rho,p)
+p.min <- function(rho) (rho-1)/(rho*(2-rho))
+
+calc.p00 <- function(rho, p, z0=NULL)
 {
-  a <- sum(d$P_n0_a, d$P_n1_a)
-  b <- sum(d$P_n0_b, d$P_n1_b)
+  if (is.null(z0))
+    z0 <- calc.z0(rho, p)
   
-  return ((1 - b) / a)
+  rho.h <- rho.hat(rho,p)
+  p00 <- (1-rho.h)*z0 / ( (1-z0)*(1-rho*z0) )
+  stopifnot(p00 >= 0 & p00 <= 1)
+  return (p00)
 }
 
-calc.p00 <- function(ro, p, accuracy = ACC)
+calc.p00.p1 <-function(rho)
 {
-  d <- calc.prob.table.by.p00(ro, p, accuracy)
-  return (calc.p00.from.table(d, accuracy))
+  g <- 1+rho-rho^2
+  
+  sqrrp1 <- sqrt(rho+1)
+  
+  f <- (sqrrp1-1) / (rho^2-1+sqrrp1)
+  
+  return (f*g)
 }
 
-calc.prob.table <- function(d, accuracy)
+calc.p01 <- function(rho, p, z0=NULL)
 {
-  p00 <- calc.p00.from.table(d, accuracy)
+  p00 <- calc.p00(rho, p, z0)
   
-  P_n0 <- d$P_n0_a*p00 + d$P_n0_b
-  P_n1 <- d$P_n1_a*p00 + d$P_n1_b
-
-  t <- data.frame(cbind(P_n0, P_n1))
-  
-  names(t) <- c("P_n0", "P_n1")
-  
-  return (t)
+  p01 <- 1 - rho.hat(rho, p) - p00
+  stopifnot(p01 >= 0 & p01 <= 1)
+  return (p01)
 }
 
-calc.expected.value <- function(d)
+calc.e<- function(rho, p, z0=NULL)
 {
-  n <- nrow(d)
-  t <- (d$P_n0+d$P_n1) * seq(0,n-1)
-  return (sum(t))
-}
-
-calc.conditional.expected.value <- function(d, k)
-{
-  n <- nrow(d)
-  p <- d[, paste("P_n", k, sep = "")]
-  pn <- p / sum(p)
-  t <- (pn * seq(0,n-1))
-  return (sum(t))
-}
-
-find.proper.range <- function(d)
-{
-  f <- function(n) { return (sum(head(d,n))) }
-  d[d<0] <- 0
-  d[d>1] <- 1
-  s1 <- sapply(1:nrow(d), f)
-  d <- d[which(s1 <= 1 & s1 >= 0), ]
-  return(d)
-}
-
-prob.n <- function(n, ro, p, accuracy = ACC)
-{
-  if (ro >= MAX_RO)
-    return (0)
-  
-  if (p <=  ((ro - 1) / (ro * (2-ro))))
-    return (0)
-  
-  if (p == 0)
-    return ((1-ro)*ro^n)
-  
-  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
-  d <- find.proper.range(d)
-  
-  if(nrow(d) < 1)
-    return (NA)
-  
-  return (d$P_n0[n+1]+d$P_n1[n+1])
-}
-
-prob.n0 <- function(n, ro, p, accuracy = ACC)
-{
-  if (ro >= MAX_RO)
-    return (0)
-  
-  if (p <=  ((ro - 1) / (ro * (2-ro))))
-    return (0)
-  
-  if (p == 0)
-    return ((1-ro)*ro^n)
-  
-  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
-  d <- find.proper.range(d)
-  
-  if(nrow(d) < 1)
-    return (NA)
-  
-  return (d$P_n0[n+1])
-}
-
-probs.to.n <- function(n, ro, p, accuracy = ACC)
-{
-  if (ro >= MAX_RO)
-    return (NA)
-  
-  if (p <=  ((ro - 1) / (ro * (2-ro))))
-    return (NA)
-  
-  if (p == 0)
-    return ((1-ro)*(ro))
-  
-  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
-  d <- find.proper.range(d)
-  
-  if(nrow(d) < 1)
-    return (NA)
-  
-  return (d$P_n0[1]+d$P_n1[1]- p*sum(d$P_n0[1:(n+1)]))
-}
-
-expected.queue.length <- function(ro, p, accuracy = ACC)
-{
-  if (ro >= MAX_RO)
-    return (Inf)
-  
-  if (p <=  ((ro - 1) / (ro * (2-ro))))
+  if (p <= p.min(rho))
     return (Inf)
   
   if (p == 0)
-    return (ro / (1-ro))
+    return (rho / (1-rho))
   
-  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
-  d <- find.proper.range(d)
+  if (is.null(z0))
+    z0 <- calc.z0(rho, p)
   
-  if(nrow(d) < 1)
-    return (NA)
+  p0 <- p0dot(rho,p)
+  p1 <- p1dot(rho,p)
+  e0 <- calc.e0(rho,p,z0)
+  e1 <- calc.e1(rho,p,z0)
+  e <- p0*e0 + p1*e1
   
-  residue <- 1 - sum(d)
+  if (is.valid.positive(e))
+    return (e)
   
-  l <- calc.expected.value(d) + residue*nrow(d)
-  mm1l <- (1-p)*ro / (1 - (1-p)*ro)
-  
-  if (l <= mm1l)
-    return (NA)
-  
-  return (l)
+  return (NA)
 }
 
-conditional.expected.queue.length <- function(ro, p, k, accuracy = ACC)
+calc.e0 <- function(rho, p, z0=NULL)
 {
-  if (ro >= MAX_RO)
-    return (Inf)
-  
-  if (p <=  ((ro - 1) / (ro * (2-ro))))
+  if (p <= p.min(rho))
     return (Inf)
   
   if (p == 0)
-    return (ro / (1-ro))
+    return (rho / (1-rho))
   
-  d <- calc.prob.table(calc.prob.table.by.p00(ro, p, accuracy), accuracy)
-  d <- find.proper.range(d)
+  if (is.null(z0))
+    z0 <- calc.z0(rho, p)
   
-  if(nrow(d) < 1)
+  rho.h <- rho.hat(rho,p)
+  p00 <- calc.p00(rho, p, z0)
+  
+  g1 <- (1-p)*rho^2 - (rho^2+(3-2*p)*rho) + 2*rho + 1
+  gPrime1 <- 3*(1-p)*rho^2 - 2*(rho^2+(3-2*p)*rho) + (2*rho+2)
+  G1 <- 1-rho.h
+  GPrime1 <- G1 + (1-rho)*p00
+  
+  e0 <- 1/p0dot(rho,p) * (GPrime1*g1 - gPrime1*G1) / ((g1)^2)
+  
+  if (is.valid.positive(e0))
+    return (e0)
+  
+  return (e0)
+}
+
+calc.e0.p1 <- function(rho)
+{
+  sqrrp1 <- sqrt(rho+1)
+  
+  return ( rho*(sqrrp1-1)/(sqrrp1-rho) )
+}
+
+is.valid.positive <- function(t) !is.null(t) & !is.na(t) & is.finite(t) & t >= 0
+
+calc.e1 <- function(rho, p, z0=NULL)
+{
+  if (p <= p.min(rho))
+    return (Inf)
+  
+  if (p == 0)
     return (NA)
   
-  residue <- ((1-k)+k*p*ro)/(p*ro+1) - sum(d[, paste("P_n", k, sep = "")])
-  l <- calc.conditional.expected.value(d, k) + residue*nrow(d)
+  if (is.null(z0))
+    z0 <- calc.z0(rho, p)
   
-  return (l)
+  rho.h <- rho.hat(rho,p)
+  p01 <- calc.p01(rho, p, z0)
+  
+  g1 <- (1-p)*rho^2 - (rho^2+(3-2*p)*rho) + 2*rho + 1
+  gPrime1 <- 3*(1-p)*rho^2 - 2*(rho^2+(3-2*p)*rho) + (2*rho+2)
+  G1 <- p*rho*(1-rho.h)
+  GPrime1 <- G1 + (1-(1-p)*rho)*p01
+  
+  e1 <- 1/p1dot(rho,p) * (GPrime1*g1 - gPrime1*G1) / ((g1)^2)
+  
+  if (is.valid.positive(e1))
+    return (e1)
+  
+  return (NA)
 }
 
-conditional.expected.queue.length2 <- function(ro, p, accuracy = ACC)
+calc.e1.rho1 <- function(p)
 {
-  p_00 <- calc.p00(ro,p)
-  g_ <- 1 - ro*(1 - p / (1 + p*ro))
-  dg_ <- g_ + (1-ro)*p_00
-  g <- -p*ro^2 -ro +2*p*ro +1
-  dg <- ro^2 -3*p*ro^2 -4*ro + 4*p*ro +2
-  res <- (dg_*g - dg*g_) / g^2
-  
-  return ((1+p*ro)*res)
+  p01 <- calc.p01(rho = 1, p = p)
+  return (((1+p)*p01 + 1)/p )
 }
 
-plot.queue.length <- function(ro, accuracy = ACC, reso = 0.02)
+calc.p.eq.rho1 <- function(gamma) min((sqrt(1+4*gamma)-1)/2, 1)
+
+plot.queue.length <- function(rho, reso = 0.005, xlim = c(0, 1), ylim = NULL)
 {
-  f1 <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
-  f2 <- function(p) { return (conditional.expected.queue.length(ro, p, 1, accuracy)) }
-  f3 <- function(p) { return (conditional.expected.queue.length(ro, p, 0, accuracy)) }
+  f1 <- function(p) calc.e(rho, p)
+  f2 <- function(p) calc.e0(rho, p)
+  f3 <- function(p) calc.e1(rho, p)
+  f4 <- function(p) mm1.approximation(rho, p)
   
   p <- seq(0, 1, reso)
   Lp1 <- sapply(p, f1)
   Lp2 <- sapply(p, f2)
   Lp3 <- sapply(p, f3)
+  Lp4 <- sapply(p, f4)
   
-  ylim <- c(min(fixedvals(c(Lp1, Lp2, Lp3))), max(fixedvals(c(Lp1, Lp2, Lp3))))
+  if(is.null(ylim))
+    ylim <- c(min(fixedvals(c(Lp1, Lp2))), max(fixedvals(c(Lp1, Lp2))))
   
-  plot(p, Lp1, type='l', ylim = ylim, ylab = "")
+  colors <- c("red","blue", "black")
+ 
+  plot(p, Lp1, type='l', ylim = ylim, xlim = xlim, ylab = "")
   par(new=T)
-  plot(p, Lp2, type='l', col = "blue", ylim = ylim, ylab = "")
+  plot(p, Lp2, type='l', col = "blue", ylim = ylim, xlim = xlim, ylab = "")
   par(new=T)
-  plot(p, Lp3, type='l', col = "red", ylim = ylim, ylab = "")
-  abline(v = ((ro - 1) / (ro * (2-ro))))
+  plot(p, Lp3, type='l', col = "red", ylim = ylim, xlim = xlim, ylab = "")
+  par(new=T)
+  plot(p, Lp4, type='l', col = "gray", ylim = ylim, xlim = xlim, ylab = "", lty = "dotted")
+  abline(v = ((rho - 1) / (rho * (2-rho))))
+ 
+ legend("topright", c("E[L | Y=1]", "E[L | Y=0]", "E[L]"), col=colors, text.col=colors, y.intersp = 0.2, bty='n')
+ 
   
-#   return (cbind(p, Lp))
+  names(Lp2) <- p
+  return (Lp2)
 }
 
-plot.prob.n <- function(n, ro, accuracy = ACC, reso = 0.02)
+calc.p.eq <- function(rho, gamma)
 {
-  f <- function(p) { return (prob.n(n, ro, p, accuracy)) }
-  
-  p <- seq(0, 1, reso)
-  pn <- sapply(p, f)
-  
-  plot(p, pn, type='l')
-  
-  return (pn)
-}
-
-plot.prob.n0 <- function(n, ro, accuracy = ACC, reso = 0.02)
-{
-  f <- function(p) { return (prob.n0(n, ro, p, accuracy)) }
-  
-  p <- seq(0, 1, reso)
-  pn <- sapply(p, f)
-  
-  plot(p, pn, type='l')
-  
-  return (pn)
-}
-
-plot.probs.to.n <- function(n, ro, accuracy = ACC, reso = 0.02)
-{
-  f <- function(p) { return (probs.to.n(n, ro, p, accuracy)) }
-  
-  p <- seq(0, 1, reso)
-  pn <- sapply(p, f)
-  
-  plot(p, pn, type='l')
-  
-  return (pn)
-}
-
-calc.p.eq <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TRUE)
-{
-  if (ro <= 1 / (1 + gamma))
+  if (rho <= 1 / (1 + gamma))
     return (0)
   
-  if (readlp){
-    d <- get.p.Lp(ro)
-    p <- d$p
-    Lp <- d$Lp
-    Lp0 <- d$Lp0
-  }
-  
-  else{
-    f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
-    f0 <- function(p) { return (conditional.expected.queue.length(ro, p, 0, accuracy)) }
-    
-    p <- seq(0, 1, reso)
-    Lp <- sapply(p, f)
-    Lp0 <- sapply(p, f0)
-  }
-  
-  Vp <- gamma*Lp0/(1+p*ro) - 1
-  min_elem <- which.min(abs(Vp))
-  
-  if (all(Vp[!is.na(Vp)] < 0))
-    return (0)
-  
-  if (all(Vp[!is.na(Vp)] > 0))
+  if (gamma*calc.e0(rho, 1) >= 1+rho)
     return (1)
   
-  if (!is.na(p[min_elem]) & !is.infinite(p[min_elem]))
-    return (p[min_elem])
+  f <- function(p)
+  {
+    e0 <- calc.e0(rho, p)
+    return (abs(gamma*e0/(1+p*rho) - 1))
+  }
   
-  else
-    return (NA)
+  return (optimize(f, c(0,1))$minimum)
 }
 
-plot.costs.chart <- function(ro, gamma, accuracy = ACC, reso = 0.02, readlp = TRUE)
+calc.p.eq.vec <- function(gamma)
 {
-  if (readlp){
-    d <- get.p.Lp(ro)
-    p <- d$p
-    Lp <- d$Lp
-    Lp0 <- d$Lp0
-  }
+  f <- function(rho) {return (calc.p.eq(rho, gamma))}
+  return(sapply(RO_VALS, f))
+}
+
+plot.costs.chart <- function(rho, gamma, reso = 0.005)
+{
+  f <- function(p) { return (calc.e(rho, p)) }
+  f0 <- function(p) { return (calc.e0(rho, p)) }
   
-  else{
-    f <- function(p) { return (expected.queue.length(ro, p, accuracy)) }
-    f0 <- function(p) { return (conditional.expected.queue.length(ro, p, 0, accuracy)) }
-    
-    p <- seq(0, 1, reso)
-    Lp <- sapply(p, f)
-    Lp0 <- sapply(p, f0)
-  }
+  p <- seq(0, 1, reso)
+  Lp <- sapply(p, f)
+  Lp0 <- sapply(p, f0)
   
-  Vs_p <- (1 + gamma*Lp0*p*ro/(1+p*ro))
+  Vs_p <- (1 + gamma*Lp0*p*rho/(1+p*rho))
   Vn_p <- gamma*Lp
-  ylimUp <- max(fixedvals(c(Vs_p, Vn_p)))
+  
   ylimLo <- min(fixedvals(c(Vs_p, Vn_p)))
+  ylimUp <- max(fixedvals(c(Vs_p, Vn_p)))
+  
+  if (rho >= 1)
+    ylimUp <- min(ylimUp, 15*ylimLo)
+  
+
+  d <- (ylimUp-ylimLo)/20
+  ylimLo <- ylimLo - d
+  
+  if (tail(fixedvals(Vs_p),1) < tail(fixedvals(Vn_p),1))
+    d <- -d
+  
   plot(p, Vs_p, col="gray70", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp), lwd = 2)
-  text(x = 0.95, y = tail(fixedvals(Vs_p),1)+0.1, labels = bquote(C[S]), cex = 1.7, col = "gray70")
+  
+  text(x = 0.95, y = tail(fixedvals(Vs_p),1)+d, labels = bquote(C[S]), cex = 1.7, col = "gray70")
   par(new=T)
   plot(p, Vn_p, col="gray10", type='l', xlab="", ylab="", xlim=c(0,1), ylim=c(ylimLo, ylimUp), lwd = 2)
-  text(x = 0.95, y = tail(fixedvals(Vn_p),1)+0.1, labels = bquote(C[N]), cex = 1.7, col = "gray10")
-  par(new=T)
-  title(main = bquote("Cost v.s." ~ p ~ ";" ~ gamma == ~.(gamma) ~ "," ~ rho == ~ .(ro)), cex.main = CEX_MAIN,
+  text(x = 0.95, y = tail(fixedvals(Vn_p),1)-d, labels = bquote(C[N]), cex = 1.7, col = "gray10")
+  title(main = bquote(C[N] ~ " & " ~ C[S] ~ " v.s." ~ p), cex.main = CEX_MAIN,
         ylab = "Cost", cex.lab = CEX_LAB, xlab = bquote(p))
-}
-
-p.ro.chart.for.given.gamma <- function(gamma, ro_seq = RO_SEQ)
-{
-  calc.p.eq.wrapper <- function(ro) { return (calc.p.eq(ro, gamma, reso = 0.01)) }
-  p_vals <- sapply(ro_seq, calc.p.eq.wrapper)
-#   plot(ro_seq, p_vals, type='b')
-  return (p_vals)
 }
 
 require('plotrix')
 
-accumulated.p.ro.chart <- function(p_vec_list, gamma_vals, ro_seq = RO_SEQ, ro_xlim = c(0, MAX_RO))
+accumulated.p.ro.chart <- function()
 {
+  gamma_vals <- sort(c(1, 2, 5, 10, .1, .2, .5 ), decreasing = F)
   ngraphs <- length(gamma_vals)
   colors <- c("gray0", "gray45", "gray70")
-  for (i in 1:ngraphs)
+  i<-1
+  
+  for (gamma in gamma_vals)
   {
-    p_vals <- p_vec_list[[i]]
-    gamma <- gamma_vals[i]
+    p_eqs <- calc.p.eq.vec(gamma)
     color <- colors[(i%%length(colors))+1]
-    plot(ro_seq, p_vals, xlab = "", ylab = "", xlim = ro_xlim, ylim = c(0,1), type = 'b', lwd = 1, pch = 20, col = color)
-    txtanchor <- which(p_vals >= 0.1*ngraphs-0.075*(ngraphs-i))[1]
-    tx <- ro_seq[txtanchor]
-    ty <- p_vals[txtanchor]
-#     textbox(x = c(tx-1, tx+1), y = ty+0.025, textlist = c("1/gamma =",round(1/gamma,4)), box = F, justify = 'c' , cex = 0.7, col = color)
-    tmp <- round(1/gamma,4)
-    text(x = tx, y = ty+0.025, labels = bquote(gamma^-1  == ~ .(tmp)), cex = 1.2, col = color)
+    
+    plot(RO_VALS, p_eqs, xlab = "", ylab = "", xlim = c(0, Phi), ylim = c(0,1), type = 'l', lwd = 2, pch = 20, col = color)
+    
+    txtanchor <- which(p_eqs >= 0.1*ngraphs-0.075*(ngraphs-i))[1]
+    tx <- RO_VALS[txtanchor]
+    ty <- p_eqs[txtanchor]
+
+    text(x = tx, y = ty+0.05, labels = bquote(gamma  == ~ .(gamma)), cex = 1.2, col = color)
+    i <- i+1
     par(new = T)
   }
+
   title(main = bquote(p[e] ~ v.s. ~ rho), cex.main = CEX_MAIN, 
         xlab = bquote(rho), ylab = bquote(p[e]), cex.lab = CEX_LAB)
   par(new = F)
+  
+  p1s <- sapply(X = gamma_vals, calc.first.pe1.rho)
+  points(p1s, rep(1,length(gamma_vals)), col='red')
 }
 
-temp <- function(ro)
+average.cost <- function(rho, gamma, p)
 {
-  l1<- sapply(seq(0, 1, 0.05), FUN = function(p){return(conditional.expected.queue.length(ro,p,0))})
-  l2<- sapply(seq(0, 1, 0.05), FUN = function(p){return(conditional.expected.queue.length2(ro,p))})
+  if(rho.hat(rho, p) >= 1)
+    return (Inf)
   
-  ylim <- c(0, max(fixedvals(c(l1,l2))))
+  e <- calc.e(rho, p)
+  e0 <- calc.e0(rho, p)
   
-  plot(l1, type="l", col="red", ylim = ylim)
+  return (p/gamma + e - p/(1+p*rho)*e0)
+}
+
+plot.tmp <- function (rho)
+{
+  f <- function(p)
+  {
+    if(rho.hat(rho, p) >= 1)
+      return (Inf)
+    
+    e <- calc.e(rho, p)
+    e0 <- calc.e0(rho, p)
+    
+    return (e - p/(1+p*rho)*e0)
+  }
+  
+  plot(P_VALS, sapply(P_VALS, f), type='l')
+}
+
+approximated.average.cost <- function(rho, gamma, p)
+{
+  rho.h <- rho.hat(rho, p)
+  if(rho.h >= 1)
+    return (Inf)
+#   em <- mm1.approximation(rho, p)
+#   e <- mm1.queue.length((1-p)*rho)
+#   p1 <- p1dot(rho, p)
+  pr0 <- p0dot(rho, p)
+#   e0 <- calc.e0(rho, p)
+#   e1 <- mm1.queue.length(rho)
+#   pe <- calc.p.eq(rho, gamma)
+  return (p/gamma + (1-p*pr0)*rho.h/(1-rho.h))
+#   return (p  + gamma*rho/(1+rho)*e1)
+}
+
+calc.social.opt <- function(rho, gamma)
+{
+  if (rho == 0)
+    return (0)
+  
+  if (gamma == 0)
+    return (0)
+  
+  f <- function(p) average.cost(rho, gamma, p)
+ 
+  return (optimize(f, c(0, 1))$minimum)
+}
+
+calc.approximated.social.opt <- function(rho, gamma)
+{
+  if (rho == 0)
+    return (0)
+  
+  if (gamma == 0)
+    return (0)
+  
+  f <- function(p) approximated.average.cost(rho, gamma, p)
+  
+  return (optimize(f, c(0, 1))$minimum)
+}
+
+plot.average.cost <- function(gamma, rho, xlim=NULL, ylim=NULL)
+{
+  minarg <- calc.social.opt(rho, gamma)
+  minval <- average.cost(rho, gamma, minarg)
+  f <- function(p) average.cost(rho, gamma, p)
+  
+  if (is.null(xlim))
+    xlim<-c(0,1)
+  
+  if (is.null(ylim))
+    ylim <- c(minval,f(0))
+  
+  plot(P_VALS, sapply(P_VALS, f), ylim = ylim, xlim=xlim, type='p')
+  points(minarg, minval, col='red', lwd =3)  
+  text(x = minarg, y = minval, labels = paste("(", round(minarg,3), "; ", round(minval,3), ")", sep = ""), 
+       cex = 1, col = "red", pos = 3 )
+  grid()
+  
   par(new=T)
-  plot(l2, type="l", col="blue", ylim = ylim)
+  plot(P_VALS, sapply(P_VALS, function(p) return(calc.e(rho,p))), ylim = ylim, xlim=xlim, type='p', xlab = "", ylab = "")
 }
 
-p.ro.chart <- function(vals, ro_xlim = c(0, MAX_RO))
+
+
+plot.approximated.average.cost <- function(gamma, rho)
 {
-  p_vals_list <- readRDS("p_vals.rds")
-  gamma_vals <- readRDS("gamma_vals.rds")
-  indices <- match(vals, gamma_vals)
+  minarg <- calc.approximated.social.opt(rho, gamma)
+  minval <- approximated.average.cost(rho, gamma, minarg)
+  f <- function(p) approximated.average.cost(rho, gamma, p)
+  plot(P_VALS, sapply(P_VALS, f), xlim = c(0,1), type='l')
+  points(minarg, minval, col='red', lwd =3)  
+  text(x = minarg, y = minval, labels = paste("(", round(minarg,3), "; ", round(minval,3), ")", sep = ""), 
+       cex = 1, col = "red", pos = 3 )
+  grid()
+}
+
+calc.social.opt.vec <- function(gamma)
+{
+  f <- function(rho) {return (calc.social.opt(rho, gamma))}
   
-  stopifnot(all(!is.na(indices)))
+  return (sapply(RO_VALS, f))
+}
+
+calc.approximated.social.opt.vec <- function(gamma)
+{
+  f <- function(rho) {return (calc.approximated.social.opt(rho, gamma))}
   
-  accumulated.p.ro.chart(p_vals_list[indices], gamma_vals[indices], RO_SEQ, ro_xlim)
-}  
+  return (sapply(RO_VALS, f))
+}
+
+
+is.p1.eq <- function(rho, gamma)
+{
+  theta <- sqrt(1+rho)
+  
+  x <- theta^4 + (gamma-1)*theta^3 - (gamma+1)*theta^2 - gamma*theta + gamma
+  
+  return(x)
+}
+
+calc.first.pe1.rho <- function(gamma)
+{
+  P <- c(1, gamma-1, -(gamma+1), -gamma, gamma)
+  roots <- Re(polyroot(rev(P)))
+  theta <- roots[roots>1 & roots<Phi]
+  
+  return(theta^2-1)
+}
+
+calc.zero.priority.waiting1 <- function(rho, p)
+{
+  e1 <- calc.e1(rho, p)
+  rho_hat <- rho.hat(rho, p)
+  
+  return ((e1+1)/rho_hat - 1)
+}
+
+calc.zero.priority.waiting <- function(rho, p)
+{
+  e <- calc.e(rho, p)
+  rho_hat <- rho.hat(rho, p)
+  
+  return ((e+1)/rho_hat - 1)
+}
+
+calc.tmp <- function(gamma, rho, p=1)
+{
+  w <- calc.zero.priority.waiting(rho, p)
+  w1 <- calc.zero.priority.waiting1(rho, p)
+  p0 <- p0dot(rho, p)
+  
+  v <- 1+gamma*((1-p0^2)*w1 - w)
+  return (v)
+}
+
+plot.social.vs.individual.opt <- function(gamma)
+{
+  peqs <- calc.p.eq.vec(gamma)
+  psos <- calc.social.opt.vec(gamma)
+  psosapp <- calc.approximated.social.opt.vec(gamma)
+  
+  txpeqs <- RO_VALS[which(peqs >= 0.5)[1]]
+  typeqs <- peqs[which(peqs >= 0.5)[1]]
+
+  txpsos <- RO_VALS[which(psos >= 0.5)[1]]
+  typsos <- psos[which(psos >= 0.5)[1]]
+  
+  plot(RO_VALS, peqs, ylim = c(0,1), type='l', lwd = 2, col = "gray70", ylab ="", xlab="")
+  text(x = txpeqs, y = typeqs-.09, labels = bquote(p[e]), cex = 1.7, col = "gray70")
+  
+  par(new=T)
+  
+  plot(RO_VALS, psos, ylim = c(0,1), type='l', lwd = 2, col = "gray10", ylab ="", xlab="")
+  text(x = txpsos, y = typsos+.05, labels = "p*", cex = 1.7, col = "gray10")
+
+  par(new=T)  
+  plot(RO_VALS, psosapp, ylim = c(0,1), type='l', lwd = 2, col = "red", lty = "dotted", ylab ="", xlab="")
+  
+  points(y=0, x=1-sqrt(gamma/(1+gamma)), col="red")
+
+  title(main = bquote(p[e] ~ "&" ~ "p*" ~ " v.s." ~ rho), cex.main = CEX_MAIN,
+        ylab = "Probability", cex.lab = CEX_LAB, xlab = bquote(rho))
+}
+
+calc.first.pe1.gamma <- function(rho)
+{
+  t <- sqrt(1+rho)
+  
+  res <- (t^2 + t^3 - t^4) / (1 - t - t^2 + t^3)
+  return (res)
+}
+
+plot.rev.social.vs.individual.opt <- function(rho)
+{
+  GBOUND <- 1.2 * calc.first.pe1.gamma(rho)
+  GAMMA_VALS <- seq(0, GBOUND, 0.005)
+  
+  if(rho > 1)
+    GAMMA_VALS <- GAMMA_VALS[-1]
+  
+  fpeq <- function(gamma) calc.p.eq(rho, gamma)
+  fpso <- function(gamma) calc.social.opt(rho, gamma)
+  fpsoapp <- function(gamma) calc.approximated.social.opt(rho, gamma)
+  
+  peqs <- sapply(GAMMA_VALS, fpeq)
+  psos <- sapply(GAMMA_VALS, fpso)
+  psosapp <- sapply(GAMMA_VALS, fpsoapp)
+  
+  txpeqs <- GAMMA_VALS[which(peqs >= 0.5)[1]]
+  typeqs <- peqs[which(peqs >= 0.5)[1]]
+  
+  txpsos <- GAMMA_VALS[which(psos >= 0.5)[1]]
+  typsos <- psos[which(psos >= 0.5)[1]]
+  
+  plot(GAMMA_VALS, peqs, ylim = c(0,1), type='l', lwd = 2, col = "gray70", ylab ="", xlab="")
+  text(x = txpeqs, y = typeqs-.09, labels = bquote(p[e]), cex = 1.7, col = "gray70")
+  
+  par(new=T)
+  
+  plot(GAMMA_VALS, psos, ylim = c(0,1), type='l', lwd = 2, col = "gray10", ylab ="", xlab="")
+  text(x = txpsos, y = typsos+.05, labels = "p*", cex = 1.7, col = "gray10")
+  
+  title(main = bquote(p[e] ~ "&" ~ "p*" ~ " v.s." ~ gamma), cex.main = CEX_MAIN,
+      ylab = "Probability", cex.lab = CEX_LAB, xlab = bquote(gamma))
+
+  h <- 1e-6
+  
+  f <- function(p) calc.e(rho, p) - p*p0dot(rho, p)*calc.e0(rho, p)
+  
+  gamma1appval <- h / (f(1-h) - f(1))
+  
+  abline(v=gamma1appval, lty="dotted")
+}
+
+generate.costs.chart <- function (gamma, rho)
+{
+  filename <- chartr('.','_', paste("cost_vs_p_", gamma, "_", rho, sep=""))
+  jpeg(paste("plots/", filename, ".png" , sep=""), width = 1000, height = 1200)
+  plot.costs.chart(rho, gamma)
+  dev.off()
+}
+
+generate.pe.vs.pstar.chart <- function (gamma)
+{
+  filename <- chartr('.','_', paste("pe_vs_pstar_", gamma, sep=""))
+  jpeg(paste("plots/", filename, ".png" , sep=""), width = 1000, height = 1200)
+  plot.social.vs.individual.opt(gamma)
+  dev.off()
+}
+
+generate.pe.vs.pstar.rev.chart <- function (rho)
+{
+  filename <- chartr('.','_', paste("pe_vs_pstar_rev_", rho, sep=""))
+  jpeg(paste("plots/", filename, ".png" , sep=""), width = 1000, height = 1200)
+  plot.rev.social.vs.individual.opt(rho)
+  dev.off()
+}
+
+calc.p1e1 <- function(rho, p) calc.e1(rho, p)*p1dot(rho, p)
+
+mm1.queue.length <- function(rho) rho/(1-rho)
+mm1.approximation <- function(rho, p) mm1.queue.length(rho.hat(rho, p))
+
+calc.p1e1.vec <- function(rho)
+{
+  return (sapply(P_VALS, function(p) calc.p1e1(rho, p)))
+}

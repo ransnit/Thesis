@@ -1,0 +1,11 @@
+# Fdb version 3
+["pdflatex"] 1430398628 "presentation.tex" "presentation.pdf" "presentation" 1430398628
+  "c:/texlive/2014/texmf-dist/web2c/texmf.cnf" 1423232779 31908 9e60cc122a23ef93121ea6e29902081d ""
+  "c:/texlive/2014/texmf-var/web2c/pdftex/pdflatex.fmt" 1423235412 3843705 f9e4733a4296d75f09349a9e85c059dd ""
+  "c:/texlive/2014/texmf.cnf" 1423235279 497 7277663fd190ea5a4fe922b182dc7be2 ""
+  "presentation.aux" 1430398595 8 a94a2480d3289e625eea47cd1b285758 ""
+  "presentation.tex" 1430398625 285 be49d4266bddd153bbbc52130e1011a0 ""
+  (generated)
+  "presentation.pdf"
+  "presentation.log"
+  "presentation.aux"

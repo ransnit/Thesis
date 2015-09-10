@@ -1,0 +1,11 @@
+PWD C:/Users/Rans/Documents/GitHub/Thesis
+INPUT c:/texlive/2014/texmf.cnf
+INPUT c:/texlive/2014/texmf-dist/web2c/texmf.cnf
+INPUT c:/texlive/2014/texmf-var/web2c/pdftex/pdflatex.fmt
+INPUT presentation.tex
+OUTPUT presentation.log
+INPUT presentation.aux
+INPUT presentation.aux
+OUTPUT presentation.aux
+OUTPUT presentation.pdf
+INPUT presentation.aux

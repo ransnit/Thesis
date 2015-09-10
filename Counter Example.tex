@@ -1,0 +1,82 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\begin{document}
+
+\begin{section}{An Example}
+
+I've been trying to think of a non-trivial example in which equilibrium isn't unique: \bigskip
+
+Think of a system in which customers arrive in batches of 3 at a time. The inter-arrival time between batches is sufficiently large (let's say deterministic 10 units-time in our case) and the service duration is bounded, so that the queue length itself is bounded by the size of the batch (3). In this example let's assume for simplicity that the service duration is deterministic and lasts 1 unit-time (although I think this example could work with much more generalized distributions). The order of service between the 3 customers of each batch is completely random, each one can be the first, second or third to be served w.p. $\frac{1}{3}$ for each case. I use the notation from my draft paper:
+
+\begin{itemize}
+\item $S_L$ is the loss system.
+\item $S_Q$ is the queue.
+\item $c_s$ is the cost of sensing (regardless of the outcome)
+\item $c_w$ is the cost per unit-time of waiting (which is also the cost of waiting a single service duration in our case)
+\item $C_{S}(p)$ is the expected cost of an individual who chooses to sense given that the others' probability of sensing is $p$.
+\item $C_{N}(p)$ is the expected cost of an individual who chooses to not to sense given that the others' probability of sensing is $p$.
+\end{itemize}
+
+The game on each round is between 3 customers, namely "A", "B" and "C" and assume w.l.o.g that the order of service is A $\rightarrow$ B $\rightarrow$ C. \bigskip
+
+Customer A is served immediately, and for him:
+\begin{equation}\begin{cases}
+ 	C_{N}(p) = 0 \:, \\
+	C_{S}(p) = c_{s} \:.
+\end{cases}
+\end{equation}
+
+Costumer B's waiting cost depends only on the actions of A. For customer B, if he does not sense then he might wait for A w.p. $1-p$ (that is the probability that A didn't sense) or will not wait at all.
+If B senses, then he will not wait (because if A is in $S_L$, B will be served by $S_Q$, and if A is in $S_Q$, B will be served by $S_L$). Therefore:
+
+\begin{equation}\begin{cases}
+ 	C_{N}(p) = (1-p)c_w \:, \\
+	C_{S}(p) = c_{s} \:.
+\end{cases}
+\end{equation}
+
+In customer C's point of view there are several options:
+
+Suppose C does not sense: 
+\begin{itemize}
+\item If A senses, C will have to wait only for B.
+\item If A does not sense, then:
+	\begin{itemize}
+	\item If B senses, C will have to wait for A.
+	\item If B does not sense, C will have to wait for both A and B.	
+	\end{itemize}
+\end{itemize}
+
+Suppose C senses:
+\begin{itemize}
+\item If A senses C will wait for B in $S_Q$ 
+\item If A does not sense and B senses, C will wait for A in $S_Q$.
+\item If both A and B do not sense, C will be served immediately by $S_L$.
+\end{itemize}
+Therefore,
+
+\begin{equation}\begin{cases}
+ 	C_{N}(p) = pc_w + (1-p)(pc_w+(1-p)\cdot2c_w) = \cdots = c_w + (1-p)^2c_w \:, \\
+	C_{S}(p) = c_{s} + pc_w + (1-p)\cdot p c_w \:.
+\end{cases}
+\end{equation}
+
+An arbitrary customer can be either A, B or C w.p. $\frac{1}{3}$, summing up all together we have that:
+\begin{equation}\begin{cases}
+ 	C_{N}(p) = \frac{1}{3} \left( (1-p)c_w + c_w + (1-p)^2c_w \right) = \cdots = \frac{C_w}{3}(p^2-3p+3) \:, \\
+	C_{S}(p) =  \frac{1}{3} \left(3c_{s} + pc_w + (1-p)\cdot p c_w\right) = \cdots = \frac{1}{3}(3c_s + 2pc_w -p^2c_w)\:.
+\end{cases}
+\end{equation}
+
+$p$ is an equilibrium iff $C_N(p)=C_S(p)$ or equivalently (after substitution and development)
+\[ 2c_w p^2 - 5c_w p + 3c_w - 3c_s = 0 \]
+
+%This is a polynomial of the 2nd degree and might have 2 roots in the interval $[0,1]$. For instance, take $c_w=c_s=1$, then both $p=0$ and $p=\frac{2}{5}$ are equilibria.
+
+
+\end{section}
+
+\end{document}
